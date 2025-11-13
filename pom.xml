@@ -16,16 +16,16 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.0</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
     
     <properties>
-        <java.version>11</java.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <telegram.version>6.5.0</telegram.version>
+        <telegram.version>6.8.0</telegram.version>
     </properties>
     
     <dependencies>
@@ -39,6 +39,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
+        <!-- Telegram Bot Library -->
         <dependency>
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots</artifactId>
@@ -51,12 +52,14 @@
             <version>${telegram.version}</version>
         </dependency>
         
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
         
+        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -16,7 +16,8 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class CommandHandler {
+public class CommandHandler
+{
 
     private final WarehouseApiService warehouseApiService;
     private Map<Long, String> userStates = new HashMap<>();
@@ -347,4 +348,78 @@ public class CommandHandler {
         
         return sb.toString();
     }
+
+    // In CommandHandler.java - replace the thermocup methods:
+
+    private String createThermocupFromInput(String input)
+    {
+        try {
+            String[] parts = input.split("\\|");
+            if (parts.length < 13) {
+                return "Invalid format. Please provide all required fields.";
+            }
+
+            // Create Product
+            Product product = new Product();
+            product.setName(parts[0]);
+            product.setCategory_id(Integer.parseInt(parts[1]));
+            product.setBase_price(new java.math.BigDecimal(parts[2]));
+            product.setSku(parts[3]);
+            product.setIs_active(Boolean.parseBoolean(parts[4]));
+            product.setPath_to_photo(parts[5]);
+
+            // Create ThermocupAttributes
+            ThermocupAttributes attributes = new ThermocupAttributes();
+            attributes.setVolume_ml(Integer.parseInt(parts[6]));
+            attributes.setColor(parts[7]);
+            attributes.setBrand(parts[8]);
+            attributes.setModel(parts[9]);
+            attributes.setIs_hermetic(Boolean.parseBoolean(parts[10]));
+            attributes.setMaterial(parts[11]);
+
+            return warehouseApiService.createThermocup(product, attributes);
+        } catch (Exception e) {
+            return "Error creating thermocup: " + e.getMessage();
+        }
+    }
+
+
+    private String formatProductWithAttributes(ProductWithAttributes<?> productWithAttributes)
+    {
+        Product product = productWithAttributes.getProduct();
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append(String.format
+        (
+            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category ID: %d\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Active: %s\n",
+            product.getId(),
+            product.getName(),
+            product.getCategory_id(),
+            product.getBase_price(),
+            product.getNum_reserved_goods(),
+            product.getIs_active() ? "Yes" : "No"
+        ));
+        
+        // Add attributes based on category
+        Object attributes = productWithAttributes.getAttributes();
+        if (attributes instanceof ThermocupAttributes)
+        {
+            ThermocupAttributes thermocup = (ThermocupAttributes) attributes;
+            sb.append("\n🧴 Thermocup Attributes:\n")
+            .append(String.format("• Volume: %d ml\n• Color: %s\n• Brand: %s\n• Model: %s\n• Hermetic: %s\n• Material: %s",
+                    thermocup.getVolume_ml(), thermocup.getColor(), thermocup.getBrand(),
+                    thermocup.getModel(), thermocup.getIs_hermetic() ? "Yes" : "No", thermocup.getMaterial()));
+        }
+        else if (attributes instanceof ServerAttributes)
+        {
+            ServerAttributes server = (ServerAttributes) attributes;
+            sb.append("\n🖥️ Server Attributes:\n")
+            .append(String.format("• RAM: %d GB\n• CPU: %s (%d cores)\n• HDD: %d GB\n• SSD: %d GB\n• Form: %s\n• Manufacturer: %s",
+                    server.getRam_gb(), server.getCpu_model(), server.getCpu_cores(),
+                    server.getHdd_size_gb(), server.getSsd_size_gb(), server.getForm_factor(), server.getManufacturer()));
+        }
+        
+        return sb.toString();
+    }
+
 }

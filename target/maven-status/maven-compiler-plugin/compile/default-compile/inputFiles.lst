@@ -1,0 +1,10 @@
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/model/ProductWithAttributes.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/model/ServerAttributes.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/service/WarehouseApiService.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/WarehouseBotApplication.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/model/ThermocupAttributes.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/service/TelegramBotService.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/handler/CommandHandler.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/config/BotConfig.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/controller/WarehouseController.java
+/mnt/disk/hdd_1/Programming/projects/AP_STORAGE/warehouse-bot/src/main/java/com/warehouse/bot/model/Product.java
