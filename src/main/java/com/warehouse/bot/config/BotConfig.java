@@ -1,4 +1,3 @@
-// config/BotConfig.java
 package com.warehouse.bot.config;
 
 import lombok.Data;
