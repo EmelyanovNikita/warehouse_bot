@@ -9,7 +9,7 @@ public class Product
 {
     private Integer id;
     private String name;
-    private Integer category_id;
+    private String category;
     private String sku;
     private BigDecimal base_price;
     private Boolean is_active;

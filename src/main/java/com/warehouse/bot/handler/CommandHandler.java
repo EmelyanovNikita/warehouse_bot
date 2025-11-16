@@ -9,6 +9,13 @@ import com.warehouse.bot.service.WarehouseApiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
+import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,14 +184,125 @@ public class CommandHandler
         StringBuilder sb = new StringBuilder("📦 All Products:\n\n");
         for (int i = 0; i < Math.min(products.size(), 10); i++) {
             Product product = products.get(i);
-            sb.append(formatProductShort(product)).append("\n\n");
+            sb.append(formatProduct(product)).append("\n\n");
         }
+        System.out.println(String.format("Size: %d", products.size()));
         
         if (products.size() > 10) {
             sb.append("... and ").append(products.size() - 10).append(" more products");
         }
         
         return sb.toString();
+    }
+
+    private ReplyKeyboard getMainMenuKeyboard()
+    {
+        // Create the keyboard object
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true); // Makes keyboard compact
+        keyboardMarkup.setOneTimeKeyboard(false); // Keeps keyboard visible
+        keyboardMarkup.setSelective(true);
+
+        // Create rows of buttons
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        // First row
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("📦 Get products");
+        keyboard.add(row1);
+
+        // First row
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("➕ Add new products");
+        keyboard.add(row2);
+    
+        // Second row
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("✏️ Update products");
+        keyboard.add(row3);
+
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    /**
+     * Sub-menu for Get products
+     */
+    private ReplyKeyboardMarkup getProductsSubMenuKeyboard()
+    {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("All products");
+        row1.add("Products by ID");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Thermocups by ID");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("🔙 Back to Main Menu");
+        keyboard.add(row3);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    /**
+     * Sub-menu for Add new products
+     */
+    private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Add new Thermal mug");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("🔙 Back to Main Menu");
+        keyboard.add(row2);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    /**
+     * Sub-menu for Update products
+     */
+    private ReplyKeyboardMarkup getUpdateProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Update thermal mug by ID");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Update quantity of reserved product");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("Update product quantity in stock");
+        keyboard.add(row3);
+        
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add("🔙 Back to Main Menu");
+        keyboard.add(row4);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
     }
 
     // private String updateThermocupFromInput(String input) {
@@ -265,39 +383,18 @@ public class CommandHandler
 
     private String formatProduct(Product product)
     {
-        String category = getCategory(product.getCategory_id());
-
         return String.format(
-            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Quantity: %d\n📦 Reserved: %d\\n" + //
+            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Quantity: %d\n📦 Reserved: %d\n" + //
                                 "🔧 Active: %s\n📸 Photo: %s",
             product.getId(),
             product.getName(),
-            category,
+            product.getCategory(),
             product.getBase_price(),
             product.getTotal_quantity(),
             product.getNum_reserved_goods(),
             product.getIs_active() ? "Yes" : "No",
             product.getPath_to_photo()
         );
-    }
-
-    private String getCategory(int id)
-    {
-        switch(id)
-        {
-            case 1:
-            {
-                return "Thermocups";
-            }
-            case 2:
-            {
-                return "Servers";
-            }
-            default:
-            {
-                return "NULL";
-            }
-        }
     }
 
     private String formatProductShort(Product product)
@@ -334,16 +431,16 @@ public class CommandHandler
         // Add category-specific attributes
         sb.append("\n📋 Attributes:\n");
         
-        switch (product.getCategory_id())
+        switch (product.getCategory())
         {
-            case 1: // Thermocups
+            case "Thermocups": // Thermocups
                 if (attributes instanceof ThermocupAttributes)
                 {
                     sb.append(formatThermocupAttributes((ThermocupAttributes) attributes));
                 }
                 break;
                 
-            case 2: // Servers
+            case "Servers": // Servers
                 if (attributes instanceof ServerAttributes)
                 {
                     sb.append(formatServerAttributes((ServerAttributes) attributes));
@@ -351,7 +448,7 @@ public class CommandHandler
                 break;
                 
             default:
-                sb.append(formatUnknownCategory(product.getCategory_id()));
+                sb.append(product.getCategory());
                 break;
         }
         
@@ -406,14 +503,6 @@ public class CommandHandler
         );
     }
 
-    /**
-     * Format message for unknown categories
-     */
-    private String formatUnknownCategory(Integer categoryId) {
-        return String.format("Category ID: %d - No specific attributes available", categoryId);
-    }
-
-
     // In CommandHandler.java - replace the thermocup methods:
 
     private String createThermocupFromInput(String input)
@@ -429,7 +518,7 @@ public class CommandHandler
             // Create Product
             Product product = new Product();
             product.setName(parts[0]);
-            product.setCategory_id(Integer.parseInt(parts[1]));
+            product.setCategory(parts[1]);
             product.setBase_price(new java.math.BigDecimal(parts[2]));
             product.setSku(parts[3]);
             product.setIs_active(Boolean.parseBoolean(parts[4]));
@@ -460,10 +549,10 @@ public class CommandHandler
         
         sb.append(String.format
         (
-            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category ID: %d\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Active: %s\n",
+            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Active: %s\n",
             product.getId(),
             product.getName(),
-            product.getCategory_id(),
+            product.getCategory(),
             product.getBase_price(),
             product.getNum_reserved_goods(),
             product.getIs_active() ? "Yes" : "No"

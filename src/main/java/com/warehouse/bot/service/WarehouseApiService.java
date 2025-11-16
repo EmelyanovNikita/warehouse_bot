@@ -79,11 +79,11 @@ public class WarehouseApiService
             
             // Then get attributes based on category
             Object attributes = null;
-            if (product.getCategory_id() == 1) // 1 == Thermocup
+            if (product.getCategory() == "Thermocups") // 1 == Thermocup
             {
                 attributes = getThermocupAttributes(productId);
             }
-            else if (product.getCategory_id() == 2) // 2 == Server
+            else if (product.getCategory() == "Server") // 2 == Server
             {
                 attributes = getServerAttributes(productId);
             }

@@ -3,10 +3,16 @@ package com.warehouse.bot.service;
 import com.warehouse.bot.config.BotConfig;
 import com.warehouse.bot.handler.CommandHandler;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -38,29 +44,151 @@ public class TelegramBotService extends TelegramLongPollingBot
 
             try
             {
-                String response = commandHandler.handleCommand(messageText, chatId);
-                sendMessage(chatId, response);
+                String responseText = commandHandler.handleCommand(messageText, chatId);
+                sendMessageWithKeyboard(chatId, responseText, messageText);
                 log.info("✅ Sent response to @{} (chatId: {})", userName, chatId);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 log.error("❌ Error processing message from @{}: {}", userName, e.getMessage());
                 sendMessage(chatId, "❌ An error occurred while processing your request. Please try again.");
             }
         }
     }
 
-    private void sendMessage(Long chatId, String text) {
-        if (text == null || text.trim().isEmpty()) {
-            log.warn("⚠️ Attempted to send empty message to chatId: {}", chatId);
-            return;
-        }
-
+    /**
+     * Send message with appropriate keyboard based on context
+     */
+    private void sendMessageWithKeyboard(Long chatId, String text, String userMessage) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         message.setText(text);
-
+        
+        // Set keyboard based on the context
+        if (userMessage.equals("/start") || userMessage.equals("🔙 Back to Main Menu")) {
+            message.setReplyMarkup(getMainMenuKeyboard());
+        } else if (userMessage.equals("📦 Get products")) {
+            message.setReplyMarkup(getProductsSubMenuKeyboard());
+        } else if (userMessage.equals("➕ Add new products")) {
+            message.setReplyMarkup(getAddProductsSubMenuKeyboard());
+        } else if (userMessage.equals("✏️ Update products")) {
+            message.setReplyMarkup(getUpdateProductsSubMenuKeyboard());
+        }
+        else
+        {
+            // For other messages, keep the current keyboard or use main menu
+            message.setReplyMarkup(getMainMenuKeyboard());
+        }
+        
         try {
             execute(message);
-            log.debug("📤 Message sent successfully to chatId: {}", chatId);
+        } catch (TelegramApiException e) {
+            log.error("❌ Failed to send message to chatId {}: {}", chatId, e.getMessage());
+        }
+    }
+
+    // Keyboard creation methods in TelegramBotService
+    private ReplyKeyboardMarkup getMainMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("📦 Get products");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("➕ Add new products");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("✏️ Update products");
+        keyboard.add(row3);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup getProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("All products");
+        row1.add("Products by ID");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Thermocups by ID");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("🔙 Back to Main Menu");
+        keyboard.add(row3);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Add new Thermal mug");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("🔙 Back to Main Menu");
+        keyboard.add(row2);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup getUpdateProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Update thermal mug by ID");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Update quantity of reserved product");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("Update product quantity in stock");
+        keyboard.add(row3);
+        
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add("🔙 Back to Main Menu");
+        keyboard.add(row4);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    // Keep your original sendMessage for simple text responses
+    private void sendMessage(Long chatId, String text) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText(text);
+        
+        try {
+            execute(message);
         } catch (TelegramApiException e) {
             log.error("❌ Failed to send message to chatId {}: {}", chatId, e.getMessage());
         }
