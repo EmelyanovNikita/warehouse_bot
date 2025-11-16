@@ -11,12 +11,14 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 @Slf4j
-public class TelegramBotService extends TelegramLongPollingBot {
+public class TelegramBotService extends TelegramLongPollingBot
+{
 
     private final BotConfig botConfig;
     private final CommandHandler commandHandler;
 
-    public TelegramBotService(BotConfig botConfig, CommandHandler commandHandler) {
+    public TelegramBotService(BotConfig botConfig, CommandHandler commandHandler)
+    {
         super(botConfig.getBotToken());
         this.botConfig = botConfig;
         this.commandHandler = commandHandler;
@@ -24,15 +26,18 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
 
     @Override
-    public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
+    public void onUpdateReceived(Update update)
+    {
+        if (update.hasMessage() && update.getMessage().hasText())
+        {
             String messageText = update.getMessage().getText();
             Long chatId = update.getMessage().getChatId();
             String userName = update.getMessage().getFrom().getUserName();
 
             log.info("📨 Received message: '{}' from @{} (chatId: {})", messageText, userName, chatId);
 
-            try {
+            try
+            {
                 String response = commandHandler.handleCommand(messageText, chatId);
                 sendMessage(chatId, response);
                 log.info("✅ Sent response to @{} (chatId: {})", userName, chatId);
