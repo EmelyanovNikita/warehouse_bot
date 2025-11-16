@@ -21,17 +21,22 @@ public class CommandHandler
     private final WarehouseApiService warehouseApiService;
     private Map<Long, String> userStates = new HashMap<>();
 
-    public CommandHandler(WarehouseApiService warehouseApiService) {
+    public CommandHandler(WarehouseApiService warehouseApiService)
+    {
         this.warehouseApiService = warehouseApiService;
     }
 
-    public String handleCommand(String message, Long chatId) {
-        try {
-            if (userStates.containsKey(chatId)) {
+    public String handleCommand(String message, Long chatId)
+    {
+        try
+        {
+            if (userStates.containsKey(chatId))
+            {
                 return handleState(message, chatId);
             }
 
-            switch (message) {
+            switch (message)
+            {
                 case "/start":
                     return getWelcomeMessage();
                 
@@ -76,18 +81,23 @@ public class CommandHandler
                 default:
                     return "Unknown command. Please use the menu buttons or type /start to see available options.";
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error handling command: {}", e.getMessage());
             return "An error occurred while processing your request. Please try again.";
         }
     }
 
-    private String handleState(String message, Long chatId) {
+    private String handleState(String message, Long chatId)
+    {
         String state = userStates.get(chatId);
         userStates.remove(chatId);
 
-        try {
-            switch (state) {
+        try
+        {
+            switch (state)
+            {
                 case "AWAITING_PRODUCT_ID":
                     Long productId = Long.parseLong(message.trim());
                     Product product = warehouseApiService.getProductById(productId);
@@ -96,13 +106,14 @@ public class CommandHandler
                 case "AWAITING_THERMOCUP_ID":
                     Long thermocupId = Long.parseLong(message.trim());
                     ProductWithAttributes<?> productWithAttrs = warehouseApiService.getProductWithAttributes(thermocupId);
-                    return productWithAttrs != null ? formatThermocup(productWithAttrs) : "productWithAttrs not found!";
+                    return productWithAttrs != null ? formatProduct(productWithAttrs) : "productWithAttrs not found!";
                 
                 case "AWAITING_THERMOCUP_CREATE":
                     return createThermocupFromInput(message);
                 
                 case "AWAITING_THERMOCUP_UPDATE":
-                    return updateThermocupFromInput(message);
+                    // return updateThermocupFromInput(message);
+                    return "updateThermocupFromInput not found";
                 
                 case "AWAITING_RESERVED_UPDATE":
                     return updateReservedQuantityFromInput(message);
@@ -113,15 +124,20 @@ public class CommandHandler
                 default:
                     return "Invalid state. Please start over.";
             }
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e)
+        {
             return "Invalid number format. Please try again with valid numbers.";
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error handling state: {}", e.getMessage());
             return "An error occurred while processing your input. Please try again.";
         }
     }
 
-    private String getWelcomeMessage() {
+    private String getWelcomeMessage()
+    {
         return "🏭 Welcome to Warehouse Bot! 🏭\n\n" +
                "Please choose an option from the menu:\n\n" +
                "📦 Get products\n" +
@@ -129,11 +145,13 @@ public class CommandHandler
                "✏️ Update products";
     }
 
-    private String getProductsMenu() {
+    private String getProductsMenu()
+    {
         return "📦 Get Products Menu:\n\n" +
                "• All products\n" +
                "• Products by ID\n" +
-               "• Thermocups by ID";
+               "• Thermocups by ID"  +
+               "• Search by filter";
     }
 
     private String getAddProductsMenu() {
@@ -148,9 +166,11 @@ public class CommandHandler
                "• Update product quantity in stock";
     }
 
-    private String getAllProducts() {
+    private String getAllProducts()
+    {
         List<Product> products = warehouseApiService.getProducts(new HashMap<>());
-        if (products.isEmpty()) {
+        if (products.isEmpty())
+        {
             return "No products found.";
         }
         
@@ -199,8 +219,10 @@ public class CommandHandler
     //     }
     // }
 
-    private String updateReservedQuantityFromInput(String input) {
-        try {
+    private String updateReservedQuantityFromInput(String input)
+    {
+        try
+        {
             String[] parts = input.split("\\|");
             if (parts.length != 2) {
                 return "Invalid format. Please use: ID|QUANTITY";
@@ -210,7 +232,9 @@ public class CommandHandler
             Integer quantityChange = Integer.parseInt(parts[1]);
 
             return warehouseApiService.updateReservedQuantity(productId, quantityChange);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             return "Error updating reserved quantity: " + e.getMessage();
         }
     }
@@ -239,57 +263,166 @@ public class CommandHandler
                "Premium Thermo|1|29.99|100|1|/photos/thermo1.jpg|500|Blue|ThermoBrand|PremiumX|true|Stainless Steel";
     }
 
-    private String formatProduct(Product product) {
+    private String formatProduct(Product product)
+    {
+        String category = getCategory(product.getCategory_id());
+
         return String.format(
-            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Quantity: %d\n🔧 Active: %s\n📸 Photo: %s",
+            "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Quantity: %d\n📦 Reserved: %d\\n" + //
+                                "🔧 Active: %s\n📸 Photo: %s",
             product.getId(),
             product.getName(),
-            product.getCategory(),
-            product.getPrice(),
-            product.getQuantity(),
-            product.getIsActive() ? "Yes" : "No",
-            product.getPathToPhoto()
+            category,
+            product.getBase_price(),
+            product.getTotal_quantity(),
+            product.getNum_reserved_goods(),
+            product.getIs_active() ? "Yes" : "No",
+            product.getPath_to_photo()
         );
     }
 
-    private String formatProductShort(Product product) {
+    private String getCategory(int id)
+    {
+        switch(id)
+        {
+            case 1:
+            {
+                return "Thermocups";
+            }
+            case 2:
+            {
+                return "Servers";
+            }
+            default:
+            {
+                return "NULL";
+            }
+        }
+    }
+
+    private String formatProductShort(Product product)
+    {
         return String.format(
-            "🆔 %d | 📛 %s | 💰 $%.2f | 📦 %d",
+            "🆔 %d | 📛 %s | 💰 $%.2f | 📦 %d | 📦 %d",
             product.getId(),
             product.getName(),
-            product.getPrice(),
-            product.getQuantity()
+            product.getBase_price(),
+            product.getTotal_quantity(),
+            product.getNum_reserved_goods()
         );
     }
 
-    // private String formatThermocup(Thermocup thermocup)
-    // {
-    //     return String.format(
-    //         "📛 Name: %s\n🏷️ Category ID: %d\n💰 Base Price: $%.2f\n📦 Starting Quantity: %d\n🏭 Warehouse ID: %d\n📸 Photo: %s\n\n" +
-    //         "Attributes:\n" +
-    //         "• Volume: %d ml\n• Color: %s\n• Brand: %s\n• Model: %s\n• Hermetic: %s\n• Material: %s",
-    //         thermocup.getName(),
-    //         thermocup.getCategory_id(),
-    //         thermocup.getBase_price(),
-    //         thermocup.getStarting_quantity(),
-    //         thermocup.getWarehouse_id(),
-    //         thermocup.getPath_to_photo(),
-    //         thermocup.getAttributes().getVolume_ml(),
-    //         thermocup.getAttributes().getColor(),
-    //         thermocup.getAttributes().getBrand(),
-    //         thermocup.getAttributes().getModel(),
-    //         thermocup.getAttributes().getIs_hermetic() ? "Yes" : "No",
-    //         thermocup.getAttributes().getMaterial()
-    //     );
-    // }
+    /**
+     * Format product information with category-specific attributes
+     */
+    private String formatProduct(ProductWithAttributes<?> productWithAttrs)
+    {
+        Product product = productWithAttrs.getProduct();
+        Object attributes = productWithAttrs.getAttributes();
+        
+        // Start with basic product info
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(
+            "🆔 ID: %d\n📛 Name: %s\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Status: %s\n",
+            product.getId(),
+            product.getName(),
+            product.getBase_price(),
+            product.getNum_reserved_goods(),
+            product.getIs_active() ? "Active" : "Inactive"
+        ));
+        
+        // Add category-specific attributes
+        sb.append("\n📋 Attributes:\n");
+        
+        switch (product.getCategory_id())
+        {
+            case 1: // Thermocups
+                if (attributes instanceof ThermocupAttributes)
+                {
+                    sb.append(formatThermocupAttributes((ThermocupAttributes) attributes));
+                }
+                break;
+                
+            case 2: // Servers
+                if (attributes instanceof ServerAttributes)
+                {
+                    sb.append(formatServerAttributes((ServerAttributes) attributes));
+                }
+                break;
+                
+            default:
+                sb.append(formatUnknownCategory(product.getCategory_id()));
+                break;
+        }
+        
+        return sb.toString();
+    }
+
+    /**
+     * Format thermocup-specific attributes
+     */
+    private String formatThermocupAttributes(ThermocupAttributes thermocup)
+    {
+        return String.format(
+            "• Volume: %d ml\n• Color: %s\n• Brand: %s\n• Model: %s\n• Hermetic: %s\n• Material: %s",
+            thermocup.getVolume_ml(),
+            thermocup.getColor(),
+            thermocup.getBrand(),
+            thermocup.getModel(),
+            thermocup.getIs_hermetic() ? "Yes" : "No",
+            thermocup.getMaterial()
+        );
+    }
+
+    /**
+     * Format server-specific attributes
+     */
+    private String formatServerAttributes(ServerAttributes server)
+    {
+        // Build storage info
+        String storageInfo = "";
+        if (server.getHdd_size_gb() != null && server.getSsd_size_gb() != null)
+        {
+            storageInfo = String.format("HDD: %d GB, SSD: %d GB", 
+                server.getHdd_size_gb(), server.getSsd_size_gb());
+        }
+        else if (server.getHdd_size_gb() != null)
+        {
+            storageInfo = String.format("HDD: %d GB", server.getHdd_size_gb());
+        }
+        else if (server.getSsd_size_gb() != null)
+        {
+            storageInfo = String.format("SSD: %d GB", server.getSsd_size_gb());
+        }
+        
+        return String.format(
+            "• RAM: %d GB\n• CPU: %s (%d cores)\n• %s\n• Form Factor: %s\n• Manufacturer: %s",
+            server.getRam_gb(),
+            server.getCpu_model(),
+            server.getCpu_cores(),
+            storageInfo,
+            server.getForm_factor(),
+            server.getManufacturer()
+        );
+    }
+
+    /**
+     * Format message for unknown categories
+     */
+    private String formatUnknownCategory(Integer categoryId) {
+        return String.format("Category ID: %d - No specific attributes available", categoryId);
+    }
+
 
     // In CommandHandler.java - replace the thermocup methods:
 
     private String createThermocupFromInput(String input)
     {
-        try {
+        try
+        {
             String[] parts = input.split("\\|");
-            if (parts.length < 13) {
+            if (parts.length < 13) //there are can not be more than 13 params (NEED TEST)
+            {
                 return "Invalid format. Please provide all required fields.";
             }
 
@@ -312,7 +445,9 @@ public class CommandHandler
             attributes.setMaterial(parts[11]);
 
             return warehouseApiService.createThermocup(product, attributes);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             return "Error creating thermocup: " + e.getMessage();
         }
     }

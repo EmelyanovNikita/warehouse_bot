@@ -5,7 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class Product {
+public class Product
+{
     private Integer id;
     private String name;
     private Integer category_id;
@@ -15,5 +16,6 @@ public class Product {
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
     private String path_to_photo;
+    private Integer total_quantity;
     private Integer num_reserved_goods;
 }

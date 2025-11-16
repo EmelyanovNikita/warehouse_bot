@@ -15,18 +15,22 @@ import java.util.Map;
 
 @Service
 @Slf4j
-public class WarehouseApiService {
+public class WarehouseApiService
+{
 
     private final RestTemplate restTemplate;
     private final BotConfig botConfig;
 
-    public WarehouseApiService(RestTemplate restTemplate, BotConfig botConfig) {
+    public WarehouseApiService(RestTemplate restTemplate, BotConfig botConfig)
+    {
         this.restTemplate = restTemplate;
         this.botConfig = botConfig;
     }
 
-    public List<Product> getProducts(Map<String, String> filters) {
-        try {
+    public List<Product> getProducts(Map<String, String> filters)
+    {
+        try
+        {
             UriComponentsBuilder builder = UriComponentsBuilder
                     .fromHttpUrl(botConfig.getWarehouseServiceUrl() + "/products");
 
@@ -40,33 +44,47 @@ public class WarehouseApiService {
             );
 
             return response.getBody();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error getting products: {}", e.getMessage());
             return List.of();
         }
     }
 
-    public Product getProductById(Long productId) {
-        try {
+    public Product getProductById(Long productId)
+    {
+        try
+        {
             String url = botConfig.getWarehouseServiceUrl() + "/products/" + productId;
             return restTemplate.getForObject(url, Product.class);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error getting product by ID: {}", e.getMessage());
             return null;
         }
     }
 
-    public ProductWithAttributes<?> getProductWithAttributes(Long productId) {
-        try {
+    public ProductWithAttributes<?> getProductWithAttributes(Long productId)
+    {
+        // We can update method of getting all info from db if will use defferent sku for different categories
+        // for example: thermos - T-xxxxxxx : there are T-thermos and xxxxxxxx - is number of product
+        // it's better way than using two requests
+        try
+        {
             // First get the main product
             Product product = getProductById(productId);
             if (product == null) return null;
             
             // Then get attributes based on category
             Object attributes = null;
-            if (product.getCategory_id() == 1) {
+            if (product.getCategory_id() == 1) // 1 == Thermocup
+            {
                 attributes = getThermocupAttributes(productId);
-            } else if (product.getCategory_id() == 2) {
+            }
+            else if (product.getCategory_id() == 2) // 2 == Server
+            {
                 attributes = getServerAttributes(productId);
             }
             
@@ -74,34 +92,46 @@ public class WarehouseApiService {
             result.setProduct(product);
             result.setAttributes(attributes);
             return result;
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error getting product with attributes: {}", e.getMessage());
             return null;
         }
     }
 
-    public ThermocupAttributes getThermocupAttributes(Long productId) {
-        try {
+    public ThermocupAttributes getThermocupAttributes(Long productId)
+    {
+        try
+        {
             String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/" + productId;
             return restTemplate.getForObject(url, ThermocupAttributes.class);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error getting thermocup attributes: {}", e.getMessage());
             return null;
         }
     }
 
-    public ServerAttributes getServerAttributes(Long productId) {
-        try {
+    public ServerAttributes getServerAttributes(Long productId)
+    {
+        try
+        {
             String url = botConfig.getWarehouseServiceUrl() + "/products/servers/" + productId;
             return restTemplate.getForObject(url, ServerAttributes.class);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error getting server attributes: {}", e.getMessage());
             return null;
         }
     }
 
-    public String createThermocup(Product product, ThermocupAttributes attributes) {
-        try {
+    public String createThermocup(Product product, ThermocupAttributes attributes)
+    {
+        try
+        {
             // First create the main product
             String productUrl = botConfig.getWarehouseServiceUrl() + "/products";
             
@@ -111,7 +141,8 @@ public class WarehouseApiService {
             HttpEntity<Product> productRequest = new HttpEntity<>(product, headers);
             ResponseEntity<Product> productResponse = restTemplate.postForEntity(productUrl, productRequest, Product.class);
             
-            if (productResponse.getStatusCode() != HttpStatus.OK) {
+            if (productResponse.getStatusCode() != HttpStatus.OK)
+            {
                 return "Error creating product: " + productResponse.getBody();
             }
             
@@ -123,27 +154,36 @@ public class WarehouseApiService {
             HttpEntity<ThermocupAttributes> attributesRequest = new HttpEntity<>(attributes, headers);
             ResponseEntity<String> attributesResponse = restTemplate.postForEntity(attributesUrl, attributesRequest, String.class);
             
-            if (attributesResponse.getStatusCode() == HttpStatus.OK) {
+            if (attributesResponse.getStatusCode() == HttpStatus.OK)
+            {
                 return "Thermocup created successfully with ID: " + newProductId;
-            } else {
+            }
+            else
+            {
                 return "Error creating thermocup attributes: " + attributesResponse.getBody();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error creating thermocup: {}", e.getMessage());
             return "Error creating thermocup: " + e.getMessage();
         }
     }
 
-    public String updateThermocup(Long productId, Product productUpdate, ThermocupAttributes attributesUpdate) {
-        try {
+    public String updateThermocup(Long productId, Product productUpdate, ThermocupAttributes attributesUpdate)
+    {
+        try
+        {
             String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId;
             
             // Combine product and attributes updates
             Map<String, Object> updateRequest = new HashMap<>();
-            if (productUpdate != null) {
+            if (productUpdate != null)
+            {
                 updateRequest.put("product", productUpdate);
             }
-            if (attributesUpdate != null) {
+            if (attributesUpdate != null)
+            {
                 updateRequest.put("attributes", attributesUpdate);
             }
             
@@ -154,19 +194,26 @@ public class WarehouseApiService {
             
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, request, String.class);
             
-            if (response.getStatusCode() == HttpStatus.OK) {
+            if (response.getStatusCode() == HttpStatus.OK)
+            {
                 return "Thermocup updated successfully!";
-            } else {
+            }
+            else
+            {
                 return "Error updating thermocup: " + response.getBody();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error updating thermocup: {}", e.getMessage());
             return "Error updating thermocup: " + e.getMessage();
         }
     }
 
-    public String updateReservedQuantity(Long productId, Integer quantityChange) {
-        try {
+    public String updateReservedQuantity(Long productId, Integer quantityChange)
+    {
+        try
+        {
             String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId + "/reserved";
             
             Map<String, Integer> requestBody = new HashMap<>();
@@ -179,12 +226,17 @@ public class WarehouseApiService {
             
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PATCH, request, String.class);
             
-            if (response.getStatusCode() == HttpStatus.OK) {
+            if (response.getStatusCode() == HttpStatus.OK)
+            {
                 return "Reserved quantity updated successfully!";
-            } else {
+            }
+            else
+            {
                 return "Error updating reserved quantity: " + response.getBody();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             log.error("Error updating reserved quantity: {}", e.getMessage());
             return "Error updating reserved quantity: " + e.getMessage();
         }
