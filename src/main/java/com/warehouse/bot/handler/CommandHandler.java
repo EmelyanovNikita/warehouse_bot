@@ -107,13 +107,14 @@ public class CommandHandler
             {
                 case "AWAITING_PRODUCT_ID":
                     Long productId = Long.parseLong(message.trim());
-                    Product product = warehouseApiService.getProductById(productId);
-                    return product != null ? formatProduct(product) : "Product not found!";
-                
+                    ProductWithAttributes<?> productWithAttrs = warehouseApiService.getProductWithAttributes(productId);
+                    System.out.println("AWAITING_PRODUCT_IDAAAAAAAAAAAAAAAA");
+                    return productWithAttrs != null ? formatProduct(productWithAttrs) : "Product not found!";
+
                 case "AWAITING_THERMOCUP_ID":
                     Long thermocupId = Long.parseLong(message.trim());
-                    ProductWithAttributes<?> productWithAttrs = warehouseApiService.getProductWithAttributes(thermocupId);
-                    return productWithAttrs != null ? formatProduct(productWithAttrs) : "productWithAttrs not found!";
+                    ProductWithAttributes<?> THERMOCUPWithAttrs = warehouseApiService.getProductWithAttributes(thermocupId);
+                    return THERMOCUPWithAttrs != null ? formatProduct(THERMOCUPWithAttrs) : "productWithAttrs not found!";
                 
                 case "AWAITING_THERMOCUP_CREATE":
                     return createThermocupFromInput(message);
@@ -414,6 +415,7 @@ public class CommandHandler
      */
     private String formatProduct(ProductWithAttributes<?> productWithAttrs)
     {
+        System.out.println("formatProductAAAAAAAAAAAAAAAA");
         Product product = productWithAttrs.getProduct();
         Object attributes = productWithAttrs.getAttributes();
         
