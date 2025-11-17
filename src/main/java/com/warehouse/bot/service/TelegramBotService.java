@@ -59,30 +59,22 @@ public class TelegramBotService extends TelegramLongPollingBot
     /**
      * Send message with appropriate keyboard based on context
      */
-    private void sendMessageWithKeyboard(Long chatId, String text, String userMessage) {
+    private void sendMessageWithKeyboard(Long chatId, String text, String userMessage)
+    {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         message.setText(text);
         
-        // Set keyboard based on the context
-        if (userMessage.equals("/start") || userMessage.equals("🔙 Back to Main Menu")) {
-            message.setReplyMarkup(getMainMenuKeyboard());
-        } else if (userMessage.equals("📦 Get products")) {
-            message.setReplyMarkup(getProductsSubMenuKeyboard());
-        } else if (userMessage.equals("➕ Add new products")) {
-            message.setReplyMarkup(getAddProductsSubMenuKeyboard());
-        } else if (userMessage.equals("✏️ Update products")) {
-            message.setReplyMarkup(getUpdateProductsSubMenuKeyboard());
-        }
-        else
-        {
-            // For other messages, keep the current keyboard or use main menu
-            message.setReplyMarkup(getMainMenuKeyboard());
-        }
+        // Set keyboard based on the user's message and chat context
+        ReplyKeyboardMarkup keyboard = createKeyboardForMessage(userMessage, chatId);
+        message.setReplyMarkup(keyboard);
         
-        try {
+        try
+        {
             execute(message);
-        } catch (TelegramApiException e) {
+        }
+        catch (TelegramApiException e)
+        {
             log.error("❌ Failed to send message to chatId {}: {}", chatId, e.getMessage());
         }
     }
@@ -194,6 +186,162 @@ public class TelegramBotService extends TelegramLongPollingBot
         } catch (TelegramApiException e) {
             log.error("❌ Failed to send message to chatId {}: {}", chatId, e.getMessage());
         }
+    }
+
+    private ReplyKeyboardMarkup createKeyboardForMessage(String userMessage, Long chatId)
+    {
+        switch (userMessage)
+        {
+            case "/start":
+            case "🔙 Back to Main Menu":
+                return createMainMenuKeyboard();
+                
+            case "📦 Get products":
+                return createProductsSubMenuKeyboard();
+                
+            case "➕ Add new products":
+                return createAddProductsSubMenuKeyboard();
+                
+            case "✏️ Update products":
+                return createUpdateProductsSubMenuKeyboard();
+                
+            case "All products":
+            case "➡️ Next page":
+            case "⬅️ Previous page":
+                return createPaginationKeyboard(chatId);
+                
+            default:
+                return createMainMenuKeyboard();
+        }
+    }
+
+    /**
+     * Create pagination keyboard with Next/Previous buttons
+     */
+    private ReplyKeyboardMarkup createPaginationKeyboard(Long chatId)
+    {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        // Pagination row
+        KeyboardRow paginationRow = new KeyboardRow();
+        paginationRow.add("⬅️ Previous page");
+        paginationRow.add("➡️ Next page");
+        keyboard.add(paginationRow);
+        
+        // Navigation row
+        KeyboardRow navRow = new KeyboardRow();
+        navRow.add("🔙 Back to Main Menu");
+        navRow.add("📦 Get products");
+        keyboard.add(navRow);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    // YOUR EXISTING KEYBOARD METHODS REMAIN THE SAME:
+    private ReplyKeyboardMarkup createMainMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("📦 Get products");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("➕ Add new products");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("✏️ Update products");
+        keyboard.add(row3);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup createProductsSubMenuKeyboard()
+    {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("All products");
+        row1.add("Products by ID");
+        keyboard.add(row1);
+        
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Search by filter");
+        keyboard.add(row2);
+        
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("🔙 Back to Main Menu");
+        keyboard.add(row3);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup createAddProductsSubMenuKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        // Row 1: Add thermocup
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Add new Thermal mug");
+        keyboard.add(row1);
+        
+        // Row 2: Back button
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("🔙 Back to Main Menu");
+        keyboard.add(row2);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
+    }
+
+    private ReplyKeyboardMarkup createUpdateProductsSubMenuKeyboard()
+    {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        // Row 1: Update thermocup
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add("Update thermal mug by ID");
+        keyboard.add(row1);
+        
+        // Row 2: Update reserved quantity
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add("Update quantity of reserved product");
+        keyboard.add(row2);
+        
+        // Row 3: Update stock quantity
+        KeyboardRow row3 = new KeyboardRow();
+        row3.add("Update product quantity in stock");
+        keyboard.add(row3);
+        
+        // Row 4: Back button
+        KeyboardRow row4 = new KeyboardRow();
+        row4.add("🔙 Back to Main Menu");
+        keyboard.add(row4);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
     }
 
     @Override

@@ -28,6 +28,13 @@ public class CommandHandler
     private final WarehouseApiService warehouseApiService;
     private Map<Long, String> userStates = new HashMap<>();
 
+    // Pagination state
+    private Map<Long, Integer> userPageStates = new HashMap<>(); // chatId -> current page
+    private Map<Long, List<Product>> userProductCache = new HashMap<>(); // chatId -> cached products
+
+    // Constants
+    private static final int PRODUCTS_PER_PAGE = 5;
+
     public CommandHandler(WarehouseApiService warehouseApiService)
     {
         this.warehouseApiService = warehouseApiService;
@@ -42,17 +49,29 @@ public class CommandHandler
                 return handleState(message, chatId);
             }
 
+            // Handle pagination commands
+            if (message.equals("➡️ Next page") || message.equals("⬅️ Previous page"))
+            {
+                return handlePagination(message, chatId);
+            }
+
             switch (message)
             {
                 case "/start":
+                    // Clear any existing pagination state
+                    userPageStates.remove(chatId);
+                    userProductCache.remove(chatId);
                     return getWelcomeMessage();
-                
-                case "Get products":
+                    
+                case "🔙 Back to Main Menu":
+                    return getWelcomeMessage();
+
+                case "📦 Get products":
                     return getProductsMenu();
-                
+
                 case "All products":
-                    return getAllProducts();
-                
+                    return getAllProducts(chatId);
+
                 case "Products by ID":
                     userStates.put(chatId, "AWAITING_PRODUCT_ID");
                     return "Please enter the product ID:";
@@ -94,6 +113,37 @@ public class CommandHandler
             log.error("Error handling command: {}", e.getMessage());
             return "An error occurred while processing your request. Please try again.";
         }
+    }
+
+    private String handlePagination(String command, Long chatId)
+    {
+        Integer currentPage = userPageStates.get(chatId);
+        List<Product> products = userProductCache.get(chatId);
+        
+        if (currentPage == null || products == null)
+        {
+            return "❌ No products session found. Please select 'All products' again.";
+        }
+        
+        int newPage = currentPage;
+        
+        if (command.equals("➡️ Next page"))
+        {
+            newPage++;
+        } else if (command.equals("⬅️ Previous page"))
+        {
+            newPage--;
+        }
+        
+        // Validate new page number
+        int totalPages = (int) Math.ceil((double) products.size() / PRODUCTS_PER_PAGE);
+        if (newPage < 0) newPage = 0;
+        if (newPage >= totalPages) newPage = totalPages - 1;
+        
+        // Update page state
+        userPageStates.put(chatId, newPage);
+        
+        return formatProductsPage(chatId, newPage);
     }
 
     private String handleState(String message, Long chatId)
@@ -172,25 +222,79 @@ public class CommandHandler
                "• Update product quantity in stock";
     }
 
-    private String getAllProducts()
+    private String getAllProducts(Long chatId)
     {
-        List<Product> products = warehouseApiService.getProducts(new HashMap<>());
-        if (products.isEmpty())
+        try
         {
-            return "No products found.";
+            List<Product> products = warehouseApiService.getProducts(new HashMap<>());
+            if (products.isEmpty())
+            {
+                return "No products found.";
+            }
+
+            // Cache products and reset page for this user
+            userProductCache.put(chatId, products);
+            userPageStates.put(chatId, 0); // Start at page 0
+
+            return formatProductsPage(chatId, 0);
+            
+        }
+        catch (Exception e)
+        {
+            log.error("Error getting all products: {}", e.getMessage());
+            return "❌ Error retrieving products. Please try again.";
+        }
+        //     StringBuilder sb = new StringBuilder("📦 All Products:\n\n");
+        // for (int i = 0; i < Math.min(products.size(), 10); i++) {
+        //     Product product = products.get(i);
+        //     sb.append(formatProduct(product)).append("\n\n");
+        // }
+        // System.out.println(String.format("Size: %d", products.size()));
+        
+        // if (products.size() > 10) {
+        //     sb.append("... and ").append(products.size() - 10).append(" more products");
+        // }
+        
+        // return sb.toString();
+    }
+
+    /**
+     * Format products for a specific page
+     */
+    private String formatProductsPage(Long chatId, int page)
+    {
+        List<Product> products = userProductCache.get(chatId);
+        if (products == null || products.isEmpty()) {
+            return "No products available.";
         }
         
-        StringBuilder sb = new StringBuilder("📦 All Products:\n\n");
-        for (int i = 0; i < Math.min(products.size(), 10); i++) {
+        int totalProducts = products.size();
+        int totalPages = (int) Math.ceil((double) totalProducts / PRODUCTS_PER_PAGE);
+        
+        // Validate page number
+        if (page < 0) page = 0;
+        if (page >= totalPages) page = totalPages - 1;
+        
+        // Calculate start and end indices
+        int startIndex = page * PRODUCTS_PER_PAGE;
+        int endIndex = Math.min(startIndex + PRODUCTS_PER_PAGE, totalProducts);
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("📦 All Products\n");
+        sb.append(String.format("📄 Page %d of %d\n\n", page + 1, totalPages));
+        
+        // Add products for current page
+        for (int i = startIndex; i < endIndex; i++) {
             Product product = products.get(i);
             sb.append(formatProduct(product)).append("\n\n");
         }
-        System.out.println(String.format("Size: %d", products.size()));
         
-        if (products.size() > 10) {
-            sb.append("... and ").append(products.size() - 10).append(" more products");
+        // Add pagination info
+        int remaining = totalProducts - endIndex;
+        if (remaining > 0) {
+            sb.append(String.format("... and %d more products\n", remaining));
         }
-        
+
         return sb.toString();
     }
 
