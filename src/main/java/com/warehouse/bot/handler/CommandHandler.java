@@ -27,10 +27,13 @@ import java.util.Map;
 public class CommandHandler
 {
 
-    // Add these constants to your existing state management
     private static final String AWAITING_STOCK_PRODUCT_ID = "AWAITING_STOCK_PRODUCT_ID";
     private static final String AWAITING_STOCK_WAREHOUSE_ID = "AWAITING_STOCK_WAREHOUSE_ID";
     private static final String AWAITING_STOCK_QUANTITY = "AWAITING_STOCK_QUANTITY";
+    private static final String AWAITING_RESERVED_PRODUCT_ID = "AWAITING_RESERVED_PRODUCT_ID";
+    private static final String AWAITING_RESERVED_QUANTITY = "AWAITING_RESERVED_QUANTITY";
+
+    private Map<Long, Long> reservedProductIdCache = new HashMap<>();
 
     private final WarehouseApiService warehouseApiService;
     private Map<Long, String> userStates = new HashMap<>();
@@ -105,11 +108,14 @@ public class CommandHandler
                     return "Please enter thermocup ID and update data in format:\n" +
                            "ID|name|category_id|base_price|SKU|is_active|path_to_photo|volume_ml|color|brand|model|is_hermetic|material\n" +
                            "Example: 123|New Name|1|29.99|SKU123|true|/photos/1.jpg|500|Red|BrandX|ModelY|true|Stainless Steel";
-                
+
                 case "Update quantity of reserved product":
-                    userStates.put(chatId, "AWAITING_RESERVED_UPDATE");
-                    return "Please enter product ID and quantity change in format: ID|QUANTITY\nExample: 123|10";
-                
+                    reservedProductIdCache.remove(chatId);
+                    
+                    userStates.put(chatId, AWAITING_RESERVED_PRODUCT_ID);
+                    return "📦 Update Reserved Quantity\n\n" +
+                        "Please enter the Product ID:";
+
                 case "Update product quantity in stock":
                     stockProductIdCache.remove(chatId);
                     stockWarehouseIdCache.remove(chatId);
@@ -200,6 +206,12 @@ public class CommandHandler
                     
                 case AWAITING_STOCK_QUANTITY:
                     return handleStockQuantity(message, chatId);
+
+                case AWAITING_RESERVED_PRODUCT_ID:
+                    return handleReservedProductId(message, chatId);
+                    
+                case AWAITING_RESERVED_QUANTITY:
+                    return handleReservedQuantity(message, chatId);
                 
                 default:
                     return "Invalid state. Please start over.";
@@ -521,7 +533,8 @@ public class CommandHandler
     /**
      * Step 3: Handle Quantity Change input and perform the update
      */
-    private String handleStockQuantity(String message, Long chatId) {
+    private String handleStockQuantity(String message, Long chatId)
+    {
         try {
             Integer quantityChange = Integer.parseInt(message.trim());
             
@@ -553,6 +566,75 @@ public class CommandHandler
         } catch (NumberFormatException e) {
             return "❌ Invalid quantity. Please enter a valid number:";
         }
+    }
+
+    private String handleReservedProductId(String message, Long chatId)
+    {
+        try {
+            Long productId = Long.parseLong(message.trim());
+            
+            // Optional: Validate product exists
+            Product product = warehouseApiService.getProductById(productId);
+            if (product == null) {
+                return "❌ Product with ID " + productId + " not found. Please enter a valid Product ID:";
+            }
+            
+            // Store product ID and move to next step
+            reservedProductIdCache.put(chatId, productId);
+            userStates.put(chatId, AWAITING_RESERVED_QUANTITY);
+            
+            return "✅ Product found: " + product.getName() + "\n\n" +
+                "Please enter the Quantity Change:\n" +
+                "• Positive number to INCREASE reserved (e.g., 12)\n" +
+                "• Negative number to DECREASE reserved (e.g., -5)";
+            
+        } catch (NumberFormatException e) {
+            return "❌ Invalid Product ID. Please enter a valid number:";
+        }
+    }
+
+    /**
+     * Step 2: Handle Quantity Change input and perform the update
+     */
+    private String handleReservedQuantity(String message, Long chatId) {
+        try {
+            Integer quantityChange = Integer.parseInt(message.trim());
+            
+            // Get stored product ID
+            Long productId = reservedProductIdCache.get(chatId);
+            
+            if (productId == null) {
+                clearReservedStates(chatId);
+                return "❌ Session expired. Please start over.";
+            }
+            
+            // Validate quantity change is not zero
+            if (quantityChange == 0) {
+                return "❌ Quantity change cannot be zero. Please enter a positive or negative number:";
+            }
+            
+            // Perform the reserved quantity update
+            log.info("🔄 Updating reserved quantity - Product: {}, Change: {}", 
+                    productId, quantityChange);
+            
+            String result = warehouseApiService.updateReservedQuantity(productId, quantityChange);
+            
+            // Clear all reserved states after completion
+            clearReservedStates(chatId);
+            
+            return result;
+            
+        } catch (NumberFormatException e) {
+            return "❌ Invalid quantity. Please enter a valid number:";
+        }
+    }
+
+    /**
+     * Clear all reserved-related states
+     */
+    private void clearReservedStates(Long chatId) {
+        userStates.remove(chatId);
+        reservedProductIdCache.remove(chatId);
     }
 
     /**

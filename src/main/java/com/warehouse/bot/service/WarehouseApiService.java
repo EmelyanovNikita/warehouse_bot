@@ -288,35 +288,63 @@ public class WarehouseApiService
         }
     }
 
+    /**
+     * Update reserved quantity for a product
+     */
     public String updateReservedQuantity(Long productId, Integer quantityChange)
     {
         try
         {
             String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId + "/reserved";
             
-            Map<String, Integer> requestBody = new HashMap<>();
+            // Create request body
+            Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("quantity_change", quantityChange);
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("accept", "application/json");
             
-            HttpEntity<Map<String, Integer>> request = new HttpEntity<>(requestBody, headers);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
             
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PATCH, request, String.class);
+            log.info("🔄 Updating reserved quantity - Product ID: {}, Change: {}", 
+                    productId, quantityChange);
+            log.info("📤 Sending PATCH request to: {}", url);
+            log.info("📦 Request body: {}", requestBody);
             
-            if (response.getStatusCode() == HttpStatus.OK)
-            {
-                return "Reserved quantity updated successfully!";
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url, 
+                    HttpMethod.PATCH, 
+                    request, 
+                    String.class
+            );
+            
+            log.info("📥 Response status: {}", response.getStatusCode());
+            log.info("📥 Response body: {}", response.getBody());
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                String successMessage = String.format(
+                    "✅ Reserved quantity updated successfully!\n" +
+                    "📦 Product ID: %d\n" +
+                    "📊 Quantity change: %+d",
+                    productId, quantityChange
+                );
+                log.info("✅ Reserved quantity update successful: {}", successMessage);
+                return successMessage;
             }
             else
             {
-                return "Error updating reserved quantity: " + response.getBody();
+                String errorMessage = "❌ Failed to update reserved quantity. Status: " + 
+                                    response.getStatusCode() + ", Body: " + response.getBody();
+                log.error("❌ Reserved quantity update failed: {}", errorMessage);
+                return errorMessage;
             }
+            
         }
         catch (Exception e)
         {
-            log.error("Error updating reserved quantity: {}", e.getMessage());
-            return "Error updating reserved quantity: " + e.getMessage();
+            log.error("❌ Exception during reserved quantity update: {}", e.getMessage(), e);
+            return "❌ Error updating reserved quantity: " + e.getMessage();
         }
     }
 
