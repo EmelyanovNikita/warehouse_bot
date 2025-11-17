@@ -56,7 +56,6 @@ public class WarehouseApiService
     {
         try
         {
-            System.out.println("getProductByIdAAAAAAAAAAAAAAAA");
             String url = botConfig.getWarehouseServiceUrl() + "/products/" + productId;
             return restTemplate.getForObject(url, Product.class);
         }
@@ -76,16 +75,16 @@ public class WarehouseApiService
         {
             // First get the main product
             Product product = getProductById(productId);
-            System.out.println("getProductWithAttributesAAAAAAAAAAAAAAAA");
             if (product == null) return null;
             
             // Then get attributes based on category
             Object attributes = null;
-            if (product.getCategory() == "Thermocups") // 1 == Thermocup
+            String category_name = product.getCategory_name();
+            if (category_name.equals("Thermocups")) // 1 == Thermocup
             {
                 attributes = getThermocupAttributes(productId);
             }
-            else if (product.getCategory() == "Server") // 2 == Server
+            else if (category_name.equals("Server")) // 2 == Server
             {
                 attributes = getServerAttributes(productId);
             }

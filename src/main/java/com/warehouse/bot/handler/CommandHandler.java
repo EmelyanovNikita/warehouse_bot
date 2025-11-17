@@ -108,7 +108,6 @@ public class CommandHandler
                 case "AWAITING_PRODUCT_ID":
                     Long productId = Long.parseLong(message.trim());
                     ProductWithAttributes<?> productWithAttrs = warehouseApiService.getProductWithAttributes(productId);
-                    System.out.println("AWAITING_PRODUCT_IDAAAAAAAAAAAAAAAA");
                     return productWithAttrs != null ? formatProduct(productWithAttrs) : "Product not found!";
 
                 case "AWAITING_THERMOCUP_ID":
@@ -389,7 +388,7 @@ public class CommandHandler
                                 "🔧 Active: %s\n📸 Photo: %s",
             product.getId(),
             product.getName(),
-            product.getCategory(),
+            product.getCategory_name(),
             product.getBase_price(),
             product.getTotal_quantity(),
             product.getNum_reserved_goods(),
@@ -415,34 +414,42 @@ public class CommandHandler
      */
     private String formatProduct(ProductWithAttributes<?> productWithAttrs)
     {
-        System.out.println("formatProductAAAAAAAAAAAAAAAA");
         Product product = productWithAttrs.getProduct();
         Object attributes = productWithAttrs.getAttributes();
         
         // Start with basic product info
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(
-            "🆔 ID: %d\n📛 Name: %s\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Status: %s\n",
+            "🆔 ID: %d\n" +
+            "📛 Name: %s\n" +
+            "🔘 Category: %s\n" +
+            "🦾 Sku: %s\n" +
+            "💰 Price: $%.2f\n" +
+            "🏠 Quantity: %d\n" +
+            "📦 Reserved: %d",
             product.getId(),
             product.getName(),
+            product.getCategory_name(),
+            product.getSku(),
             product.getBase_price(),
-            product.getNum_reserved_goods(),
-            product.getIs_active() ? "Active" : "Inactive"
+            product.getTotal_quantity(),
+            product.getNum_reserved_goods()
         ));
         
+        sb.append("\n");
         // Add category-specific attributes
         sb.append("\n📋 Attributes:\n");
         
-        switch (product.getCategory())
+        switch (product.getCategory_name())
         {
-            case "Thermocups": // Thermocups
+            case "Thermocups":
                 if (attributes instanceof ThermocupAttributes)
                 {
                     sb.append(formatThermocupAttributes((ThermocupAttributes) attributes));
                 }
                 break;
                 
-            case "Servers": // Servers
+            case "Servers":
                 if (attributes instanceof ServerAttributes)
                 {
                     sb.append(formatServerAttributes((ServerAttributes) attributes));
@@ -450,7 +457,7 @@ public class CommandHandler
                 break;
                 
             default:
-                sb.append(product.getCategory());
+                sb.append(product.getCategory_name());
                 break;
         }
         
@@ -520,7 +527,7 @@ public class CommandHandler
             // Create Product
             Product product = new Product();
             product.setName(parts[0]);
-            product.setCategory(parts[1]);
+            product.setCategory_name(parts[1]);
             product.setBase_price(new java.math.BigDecimal(parts[2]));
             product.setSku(parts[3]);
             product.setIs_active(Boolean.parseBoolean(parts[4]));
@@ -554,7 +561,7 @@ public class CommandHandler
             "🆔 ID: %d\n📛 Name: %s\n🏷️ Category: %s\n💰 Price: $%.2f\n📦 Reserved: %d\n🔧 Active: %s\n",
             product.getId(),
             product.getName(),
-            product.getCategory(),
+            product.getCategory_name(),
             product.getBase_price(),
             product.getNum_reserved_goods(),
             product.getIs_active() ? "Yes" : "No"
