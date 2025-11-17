@@ -190,10 +190,17 @@ public class TelegramBotService extends TelegramLongPollingBot
 
     private ReplyKeyboardMarkup createKeyboardForMessage(String userMessage, Long chatId)
     {
-        switch (userMessage)
-        {
+        // Check if user is in stock update flow
+        String userState = commandHandler.getUserState(chatId); // You'll need to add a getter for this
+        
+        if (userState != null && userState.startsWith("AWAITING_STOCK_")) {
+            return createCancelKeyboard();
+        }
+        
+        switch (userMessage) {
             case "/start":
             case "🔙 Back to Main Menu":
+            case "❌ Cancel":
                 return createMainMenuKeyboard();
                 
             case "📦 Get products":
@@ -213,6 +220,24 @@ public class TelegramBotService extends TelegramLongPollingBot
             default:
                 return createMainMenuKeyboard();
         }
+    }
+
+    /**
+     * Create cancel keyboard for step-by-step flows
+     */
+    private ReplyKeyboardMarkup createCancelKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        KeyboardRow row = new KeyboardRow();
+        row.add("❌ Cancel");
+        keyboard.add(row);
+        
+        keyboardMarkup.setKeyboard(keyboard);
+        return keyboardMarkup;
     }
 
     /**

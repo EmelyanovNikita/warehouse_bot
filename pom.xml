@@ -38,7 +38,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        
+	
+	<dependency>
+    	    <groupId>org.apache.httpcomponents.client5</groupId>
+	    <artifactId>httpclient5</artifactId>
+    	    <version>5.2.1</version>
+   	</dependency>
+   
         <!-- Telegram Bot Library -->
         <dependency>
             <groupId>org.telegram</groupId>

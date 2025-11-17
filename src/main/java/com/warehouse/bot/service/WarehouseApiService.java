@@ -149,6 +149,63 @@ public class WarehouseApiService
         }
     }
 
+    public String updateStockQuantity(Long productId, Integer warehouseId, Integer quantityChange)
+    {
+        try
+        {
+            String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId + "/stock";
+            
+            // Create request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("warehouse_id", warehouseId);
+            requestBody.put("quantity_change", quantityChange);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+            
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            
+            log.info("🔄 Updating stock quantity - Product ID: {}, Warehouse: {}, Change: {}", 
+                    productId, warehouseId, quantityChange);
+            log.info("📤 Sending PATCH request to: {}", url);
+            log.info("📦 Request body: {}", requestBody);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url, 
+                    HttpMethod.PATCH, 
+                    request, 
+                    String.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful())
+            {
+                String successMessage = String.format(
+                    "✅ Stock quantity updated successfully!\n" +
+                    "📦 Product ID: %d\n" +
+                    "🏭 Warehouse: %d\n" +
+                    "📊 Quantity change: %+d",
+                    productId, warehouseId, quantityChange
+                );
+                log.info("✅ Stock update successful: {}", successMessage);
+                return successMessage;
+            }
+            else
+            {
+                String errorMessage = "❌ Failed to update stock quantity: " + response.getBody();
+                log.error("❌ Stock update failed: {}", errorMessage);
+                return errorMessage;
+            }
+            
+        }
+        catch (Exception e)
+        {
+            String errorMessage = "❌ Error updating stock quantity: " + e.getMessage();
+            log.error("❌ Exception during stock update: {}", errorMessage);
+            return errorMessage;
+        }
+    }
+
     public String createThermocup(Product product, ThermocupAttributes attributes)
     {
         try
@@ -263,29 +320,29 @@ public class WarehouseApiService
         }
     }
 
-    public String updateStockQuantity(Long productId, Integer warehouseId, Integer quantityChange) {
-        try {
-            String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId + "/stock";
+    // public String updateStockQuantity(Long productId, Integer warehouseId, Integer quantityChange) {
+    //     try {
+    //         String url = botConfig.getWarehouseServiceUrl() + "/products/thermocups/update/" + productId + "/stock";
             
-            Map<String, Integer> requestBody = new HashMap<>();
-            requestBody.put("warehouse_id", warehouseId);
-            requestBody.put("quantity_change", quantityChange);
+    //         Map<String, Integer> requestBody = new HashMap<>();
+    //         requestBody.put("warehouse_id", warehouseId);
+    //         requestBody.put("quantity_change", quantityChange);
             
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+    //         HttpHeaders headers = new HttpHeaders();
+    //         headers.setContentType(MediaType.APPLICATION_JSON);
             
-            HttpEntity<Map<String, Integer>> request = new HttpEntity<>(requestBody, headers);
+    //         HttpEntity<Map<String, Integer>> request = new HttpEntity<>(requestBody, headers);
             
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PATCH, request, String.class);
+    //         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PATCH, request, String.class);
             
-            if (response.getStatusCode() == HttpStatus.OK) {
-                return "Stock quantity updated successfully!";
-            } else {
-                return "Error updating stock quantity: " + response.getBody();
-            }
-        } catch (Exception e) {
-            log.error("Error updating stock quantity: {}", e.getMessage());
-            return "Error updating stock quantity: " + e.getMessage();
-        }
-    }
+    //         if (response.getStatusCode() == HttpStatus.OK) {
+    //             return "Stock quantity updated successfully!";
+    //         } else {
+    //             return "Error updating stock quantity: " + response.getBody();
+    //         }
+    //     } catch (Exception e) {
+    //         log.error("Error updating stock quantity: {}", e.getMessage());
+    //         return "Error updating stock quantity: " + e.getMessage();
+    //     }
+    // }
 }

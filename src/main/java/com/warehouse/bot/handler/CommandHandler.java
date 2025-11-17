@@ -7,6 +7,8 @@ import com.warehouse.bot.model.ServerAttributes;
 import com.warehouse.bot.model.ThermocupAttributes;
 import com.warehouse.bot.service.WarehouseApiService;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -25,12 +27,20 @@ import java.util.Map;
 public class CommandHandler
 {
 
+    // Add these constants to your existing state management
+    private static final String AWAITING_STOCK_PRODUCT_ID = "AWAITING_STOCK_PRODUCT_ID";
+    private static final String AWAITING_STOCK_WAREHOUSE_ID = "AWAITING_STOCK_WAREHOUSE_ID";
+    private static final String AWAITING_STOCK_QUANTITY = "AWAITING_STOCK_QUANTITY";
+
     private final WarehouseApiService warehouseApiService;
     private Map<Long, String> userStates = new HashMap<>();
 
     // Pagination state
     private Map<Long, Integer> userPageStates = new HashMap<>(); // chatId -> current page
     private Map<Long, List<Product>> userProductCache = new HashMap<>(); // chatId -> cached products
+
+    private Map<Long, Long> stockProductIdCache = new HashMap<>(); // chatId -> productId
+    private Map<Long, Integer> stockWarehouseIdCache = new HashMap<>(); // chatId -> warehouseId
 
     // Constants
     private static final int PRODUCTS_PER_PAGE = 5;
@@ -101,8 +111,12 @@ public class CommandHandler
                     return "Please enter product ID and quantity change in format: ID|QUANTITY\nExample: 123|10";
                 
                 case "Update product quantity in stock":
-                    userStates.put(chatId, "AWAITING_STOCK_UPDATE");
-                    return "Please enter product ID, warehouse ID and quantity change in format: PRODUCT_ID|WAREHOUSE_ID|QUANTITY\nExample: 123|1|15";
+                    stockProductIdCache.remove(chatId);
+                    stockWarehouseIdCache.remove(chatId);
+
+                    userStates.put(chatId, AWAITING_STOCK_PRODUCT_ID);
+                    return "📦 Update Product Stock Quantity\n\n" +
+                        "Please enter the Product ID:";
                 
                 default:
                     return "Unknown command. Please use the menu buttons or type /start to see available options.";
@@ -174,9 +188,18 @@ public class CommandHandler
                 
                 case "AWAITING_RESERVED_UPDATE":
                     return updateReservedQuantityFromInput(message);
-                
+
                 case "AWAITING_STOCK_UPDATE":
                     return updateStockQuantityFromInput(message);
+
+                case AWAITING_STOCK_PRODUCT_ID:
+                    return handleStockProductId(message, chatId);
+                    
+                case AWAITING_STOCK_WAREHOUSE_ID:
+                    return handleStockWarehouseId(message, chatId);
+                    
+                case AWAITING_STOCK_QUANTITY:
+                    return handleStockQuantity(message, chatId);
                 
                 default:
                     return "Invalid state. Please start over.";
@@ -298,114 +321,253 @@ public class CommandHandler
         return sb.toString();
     }
 
-    private ReplyKeyboard getMainMenuKeyboard()
-    {
-        // Create the keyboard object
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        keyboardMarkup.setResizeKeyboard(true); // Makes keyboard compact
-        keyboardMarkup.setOneTimeKeyboard(false); // Keeps keyboard visible
-        keyboardMarkup.setSelective(true);
+    // private ReplyKeyboard getMainMenuKeyboard()
+    // {
+    //     // Create the keyboard object
+    //     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    //     keyboardMarkup.setResizeKeyboard(true); // Makes keyboard compact
+    //     keyboardMarkup.setOneTimeKeyboard(false); // Keeps keyboard visible
+    //     keyboardMarkup.setSelective(true);
 
-        // Create rows of buttons
-        List<KeyboardRow> keyboard = new ArrayList<>();
+    //     // Create rows of buttons
+    //     List<KeyboardRow> keyboard = new ArrayList<>();
         
-        // First row
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("📦 Get products");
-        keyboard.add(row1);
+    //     // First row
+    //     KeyboardRow row1 = new KeyboardRow();
+    //     row1.add("📦 Get products");
+    //     keyboard.add(row1);
 
-        // First row
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add("➕ Add new products");
-        keyboard.add(row2);
+    //     // First row
+    //     KeyboardRow row2 = new KeyboardRow();
+    //     row2.add("➕ Add new products");
+    //     keyboard.add(row2);
     
-        // Second row
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add("✏️ Update products");
-        keyboard.add(row3);
+    //     // Second row
+    //     KeyboardRow row3 = new KeyboardRow();
+    //     row3.add("✏️ Update products");
+    //     keyboard.add(row3);
 
-        keyboardMarkup.setKeyboard(keyboard);
-        return keyboardMarkup;
-    }
+    //     keyboardMarkup.setKeyboard(keyboard);
+    //     return keyboardMarkup;
+    // }
 
-    /**
-     * Sub-menu for Get products
-     */
-    private ReplyKeyboardMarkup getProductsSubMenuKeyboard()
+    // /**
+    //  * Sub-menu for Get products
+    //  */
+    // private ReplyKeyboardMarkup getProductsSubMenuKeyboard()
+    // {
+    //     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    //     keyboardMarkup.setResizeKeyboard(true);
+    //     keyboardMarkup.setOneTimeKeyboard(false);
+        
+    //     List<KeyboardRow> keyboard = new ArrayList<>();
+        
+    //     KeyboardRow row1 = new KeyboardRow();
+    //     row1.add("All products");
+    //     row1.add("Products by ID");
+    //     keyboard.add(row1);
+        
+    //     KeyboardRow row2 = new KeyboardRow();
+    //     row2.add("Search by filter");
+    //     keyboard.add(row2);
+        
+    //     KeyboardRow row3 = new KeyboardRow();
+    //     row3.add("🔙 Back to Main Menu");
+    //     keyboard.add(row3);
+        
+    //     keyboardMarkup.setKeyboard(keyboard);
+    //     return keyboardMarkup;
+    // }
+
+    // /**
+    //  * Sub-menu for Add new products
+    //  */
+    // private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard() {
+    //     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    //     keyboardMarkup.setResizeKeyboard(true);
+    //     keyboardMarkup.setOneTimeKeyboard(false);
+        
+    //     List<KeyboardRow> keyboard = new ArrayList<>();
+        
+    //     KeyboardRow row1 = new KeyboardRow();
+    //     row1.add("Add new Thermal mug");
+    //     keyboard.add(row1);
+        
+    //     KeyboardRow row2 = new KeyboardRow();
+    //     row2.add("🔙 Back to Main Menu");
+    //     keyboard.add(row2);
+        
+    //     keyboardMarkup.setKeyboard(keyboard);
+    //     return keyboardMarkup;
+    // }
+
+    // /**
+    //  * Sub-menu for Update products
+    //  */
+    // private ReplyKeyboardMarkup getUpdateProductsSubMenuKeyboard() {
+    //     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    //     keyboardMarkup.setResizeKeyboard(true);
+    //     keyboardMarkup.setOneTimeKeyboard(false);
+        
+    //     List<KeyboardRow> keyboard = new ArrayList<>();
+        
+    //     KeyboardRow row1 = new KeyboardRow();
+    //     row1.add("Update thermal mug by ID");
+    //     keyboard.add(row1);
+        
+    //     KeyboardRow row2 = new KeyboardRow();
+    //     row2.add("Update quantity of reserved product");
+    //     keyboard.add(row2);
+        
+    //     KeyboardRow row3 = new KeyboardRow();
+    //     row3.add("Update product quantity in stock");
+    //     keyboard.add(row3);
+        
+    //     KeyboardRow row4 = new KeyboardRow();
+    //     row4.add("🔙 Back to Main Menu");
+    //     keyboard.add(row4);
+        
+    //     keyboardMarkup.setKeyboard(keyboard);
+    //     return keyboardMarkup;
+    // }
+
+    private String updateStockQuantityFromInput(String input)
     {
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        keyboardMarkup.setResizeKeyboard(true);
-        keyboardMarkup.setOneTimeKeyboard(false);
-        
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("All products");
-        row1.add("Products by ID");
-        keyboard.add(row1);
-        
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add("Search by filter");
-        keyboard.add(row2);
-        
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add("🔙 Back to Main Menu");
-        keyboard.add(row3);
-        
-        keyboardMarkup.setKeyboard(keyboard);
-        return keyboardMarkup;
+        try
+        {
+            String[] parts = input.split("\\|");
+            if (parts.length != 3)
+            {
+                return "❌ Invalid format. Please use: PRODUCT_ID|WAREHOUSE_ID|QUANTITY_CHANGE\n" +
+                    "📝 Example: 1|1|33  (add 33 items)\n" +
+                    "📝 Example: 1|1|-5 (remove 5 items)";
+            }
+
+            Long productId = Long.parseLong(parts[0].trim());
+            Integer warehouseId = Integer.parseInt(parts[1].trim());
+            Integer quantityChange = Integer.parseInt(parts[2].trim());
+            
+            log.info("🔄 Processing stock update - Product: {}, Warehouse: {}, Change: {}", 
+                    productId, warehouseId, quantityChange);
+            
+            // Validate quantity change is not zero
+            if (quantityChange == 0) {
+                return "❌ Quantity change cannot be zero. Use positive number to add or negative to remove.";
+            }
+            
+            String result = warehouseApiService.updateStockQuantity(productId, warehouseId, quantityChange);
+            return result;
+            
+        }
+        catch (NumberFormatException e)
+        {
+            return "❌ Invalid number format. Please enter valid numbers.\n" +
+                "📝 Format: PRODUCT_ID|WAREHOUSE_ID|QUANTITY_CHANGE\n" +
+                "📝 Example: 1|1|33";
+        } catch (Exception e) {
+            log.error("Error updating stock quantity: {}", e.getMessage());
+            return "❌ Error updating stock quantity: " + e.getMessage();
+        }
+    }
+
+    private String handleStockProductId(String message, Long chatId)
+    {
+        try
+        {
+            Long productId = Long.parseLong(message.trim());
+            
+            // Optional: Validate product exists
+            Product product = warehouseApiService.getProductById(productId);
+            if (product == null) {
+                return "❌ Product with ID " + productId + " not found. Please enter a valid Product ID:";
+            }
+            
+            // Store product ID and move to next step
+            stockProductIdCache.put(chatId, productId);
+            userStates.put(chatId, AWAITING_STOCK_WAREHOUSE_ID);
+            
+            return "✅ Product found: " + product.getName() + "\n\n" +
+                "Please enter the Warehouse ID:";
+            
+        }
+        catch (NumberFormatException e)
+        {
+            return "❌ Invalid Product ID. Please enter a valid number:";
+        }
     }
 
     /**
-     * Sub-menu for Add new products
+     * Step 2: Handle Warehouse ID input
      */
-    private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard() {
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        keyboardMarkup.setResizeKeyboard(true);
-        keyboardMarkup.setOneTimeKeyboard(false);
-        
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("Add new Thermal mug");
-        keyboard.add(row1);
-        
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add("🔙 Back to Main Menu");
-        keyboard.add(row2);
-        
-        keyboardMarkup.setKeyboard(keyboard);
-        return keyboardMarkup;
+    private String handleStockWarehouseId(String message, Long chatId)
+    {
+        try {
+            Integer warehouseId = Integer.parseInt(message.trim());
+            
+            // Store warehouse ID and move to next step
+            stockWarehouseIdCache.put(chatId, warehouseId);
+            userStates.put(chatId, AWAITING_STOCK_QUANTITY);
+            
+            return "✅ Warehouse ID: " + warehouseId + "\n\n" +
+                "Please enter the Quantity Change:\n" +
+                "• Positive number to ADD items (e.g., 33)\n" +
+                "• Negative number to REMOVE items (e.g., -5)";
+            
+        } catch (NumberFormatException e) {
+            return "❌ Invalid Warehouse ID. Please enter a valid number:";
+        }
     }
 
     /**
-     * Sub-menu for Update products
+     * Step 3: Handle Quantity Change input and perform the update
      */
-    private ReplyKeyboardMarkup getUpdateProductsSubMenuKeyboard() {
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        keyboardMarkup.setResizeKeyboard(true);
-        keyboardMarkup.setOneTimeKeyboard(false);
-        
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add("Update thermal mug by ID");
-        keyboard.add(row1);
-        
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add("Update quantity of reserved product");
-        keyboard.add(row2);
-        
-        KeyboardRow row3 = new KeyboardRow();
-        row3.add("Update product quantity in stock");
-        keyboard.add(row3);
-        
-        KeyboardRow row4 = new KeyboardRow();
-        row4.add("🔙 Back to Main Menu");
-        keyboard.add(row4);
-        
-        keyboardMarkup.setKeyboard(keyboard);
-        return keyboardMarkup;
+    private String handleStockQuantity(String message, Long chatId) {
+        try {
+            Integer quantityChange = Integer.parseInt(message.trim());
+            
+            // Get stored values
+            Long productId = stockProductIdCache.get(chatId);
+            Integer warehouseId = stockWarehouseIdCache.get(chatId);
+            
+            if (productId == null || warehouseId == null) {
+                clearStockStates(chatId);
+                return "❌ Session expired. Please start over.";
+            }
+            
+            // Validate quantity change is not zero
+            if (quantityChange == 0) {
+                return "❌ Quantity change cannot be zero. Please enter a positive or negative number:";
+            }
+            
+            // Perform the stock update
+            log.info("🔄 Updating stock - Product: {}, Warehouse: {}, Change: {}", 
+                    productId, warehouseId, quantityChange);
+            
+            String result = warehouseApiService.updateStockQuantity(productId, warehouseId, quantityChange);
+            
+            // Clear all stock states after completion
+            clearStockStates(chatId);
+            
+            return result;
+            
+        } catch (NumberFormatException e) {
+            return "❌ Invalid quantity. Please enter a valid number:";
+        }
+    }
+
+    /**
+     * Clear all stock-related states
+     */
+    private void clearStockStates(Long chatId)
+    {
+        userStates.remove(chatId);
+        stockProductIdCache.remove(chatId);
+        stockWarehouseIdCache.remove(chatId);
+    }
+
+    public String getUserState(Long chatId)
+    {
+        return userStates.get(chatId);
     }
 
     // private String updateThermocupFromInput(String input) {
@@ -457,23 +619,6 @@ public class CommandHandler
         catch (Exception e)
         {
             return "Error updating reserved quantity: " + e.getMessage();
-        }
-    }
-
-    private String updateStockQuantityFromInput(String input) {
-        try {
-            String[] parts = input.split("\\|");
-            if (parts.length != 3) {
-                return "Invalid format. Please use: PRODUCT_ID|WAREHOUSE_ID|QUANTITY";
-            }
-
-            Long productId = Long.parseLong(parts[0]);
-            Integer warehouseId = Integer.parseInt(parts[1]);
-            Integer quantityChange = Integer.parseInt(parts[2]);
-
-            return warehouseApiService.updateStockQuantity(productId, warehouseId, quantityChange);
-        } catch (Exception e) {
-            return "Error updating stock quantity: " + e.getMessage();
         }
     }
 
