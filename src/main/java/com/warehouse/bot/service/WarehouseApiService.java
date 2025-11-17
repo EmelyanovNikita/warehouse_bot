@@ -43,7 +43,20 @@ public class WarehouseApiService
                     new ParameterizedTypeReference<List<Product>>() {}
             );
 
-            return response.getBody();
+            // Fix null values in the returned product list
+            List<Product> products = response.getBody();
+            if (products != null)
+            {
+                for (Product product : products)
+                {
+                    if (product.getNum_reserved_goods() == null)
+                    {
+                        product.setNum_reserved_goods(0);
+                    }
+                }
+            }
+
+            return products != null ? products : List.of();
         }
         catch (Exception e)
         {
@@ -57,7 +70,13 @@ public class WarehouseApiService
         try
         {
             String url = botConfig.getWarehouseServiceUrl() + "/products/" + productId;
-            return restTemplate.getForObject(url, Product.class);
+            Product product = restTemplate.getForObject(url, Product.class);
+            if (product.getNum_reserved_goods() == null)
+            {
+                product.setNum_reserved_goods(0);
+            }
+
+            return product;
         }
         catch (Exception e)
         {

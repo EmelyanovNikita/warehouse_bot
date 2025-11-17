@@ -111,7 +111,8 @@ public class TelegramBotService extends TelegramLongPollingBot
         return keyboardMarkup;
     }
 
-    private ReplyKeyboardMarkup getProductsSubMenuKeyboard() {
+    private ReplyKeyboardMarkup getProductsSubMenuKeyboard()
+    {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(false);
@@ -124,7 +125,7 @@ public class TelegramBotService extends TelegramLongPollingBot
         keyboard.add(row1);
         
         KeyboardRow row2 = new KeyboardRow();
-        row2.add("Thermocups by ID");
+        row2.add("Search by filter");
         keyboard.add(row2);
         
         KeyboardRow row3 = new KeyboardRow();
@@ -135,7 +136,8 @@ public class TelegramBotService extends TelegramLongPollingBot
         return keyboardMarkup;
     }
 
-    private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard() {
+    private ReplyKeyboardMarkup getAddProductsSubMenuKeyboard()
+    {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(false);

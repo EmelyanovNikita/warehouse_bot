@@ -57,9 +57,9 @@ public class CommandHandler
                     userStates.put(chatId, "AWAITING_PRODUCT_ID");
                     return "Please enter the product ID:";
                 
-                case "Thermocups by ID":
-                    userStates.put(chatId, "AWAITING_THERMOCUP_ID");
-                    return "Please enter the thermocup ID:";
+                case "Search by filter":
+                    userStates.put(chatId, "AWAITING_FILTER_PARAMETERS");
+                    return "Please choose params:";
                 
                 case "Add new products":
                     return getAddProductsMenu();
@@ -110,7 +110,7 @@ public class CommandHandler
                     ProductWithAttributes<?> productWithAttrs = warehouseApiService.getProductWithAttributes(productId);
                     return productWithAttrs != null ? formatProduct(productWithAttrs) : "Product not found!";
 
-                case "AWAITING_THERMOCUP_ID":
+                case "AWAITING_FILTER_PARAMETERS":
                     Long thermocupId = Long.parseLong(message.trim());
                     ProductWithAttributes<?> THERMOCUPWithAttrs = warehouseApiService.getProductWithAttributes(thermocupId);
                     return THERMOCUPWithAttrs != null ? formatProduct(THERMOCUPWithAttrs) : "productWithAttrs not found!";
@@ -157,7 +157,6 @@ public class CommandHandler
         return "📦 Get Products Menu:\n\n" +
                "• All products\n" +
                "• Products by ID\n" +
-               "• Thermocups by ID"  +
                "• Search by filter";
     }
 
@@ -242,7 +241,7 @@ public class CommandHandler
         keyboard.add(row1);
         
         KeyboardRow row2 = new KeyboardRow();
-        row2.add("Thermocups by ID");
+        row2.add("Search by filter");
         keyboard.add(row2);
         
         KeyboardRow row3 = new KeyboardRow();
