@@ -756,14 +756,16 @@ public class CommandHandler
             "🦾 Sku: %s\n" +
             "💰 Price: $%.2f\n" +
             "🏠 Quantity: %d\n" +
-            "📦 Reserved: %d",
+            "📦 Reserved: %d\n" +
+            "🌐 Path to photo: %s",
             product.getId(),
             product.getName(),
             product.getCategory_name(),
             product.getSku(),
             product.getBase_price(),
             product.getTotal_quantity(),
-            product.getNum_reserved_goods()
+            product.getNum_reserved_goods(),
+            product.getPath_to_photo()
         ));
         
         sb.append("\n");
