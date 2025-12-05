@@ -1,0 +1,11 @@
+com/warehouse/bot/service/WarehouseApiService.class
+com/warehouse/bot/config/BotConfig.class
+com/warehouse/bot/controller/WarehouseController.class
+com/warehouse/bot/handler/CommandHandler.class
+com/warehouse/bot/service/WarehouseApiService$1.class
+com/warehouse/bot/model/ServerAttributes.class
+com/warehouse/bot/model/ProductWithAttributes.class
+com/warehouse/bot/model/Product.class
+com/warehouse/bot/WarehouseBotApplication.class
+com/warehouse/bot/service/TelegramBotService.class
+com/warehouse/bot/model/ThermocupAttributes.class
